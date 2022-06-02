@@ -1,6 +1,7 @@
 package namespace
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -163,4 +164,21 @@ func Test_SetDefaultOptions(t *testing.T) {
 		assert.Equal(t, ErrKeyNotHaveNamespace, err)
 		assert.Equal(t, k, keyStr)
 	}
+}
+
+func Test_Random_key(t *testing.T) {
+	SetDefaultOptions(WithEtcdStyle())
+	namespace := NameSpcae{"a", "b", "c"}
+	ns, err := namespace.RandomKey()
+	if err != nil {
+		assert.FailNow(t, err.Error(), "etcd style namespace RandomKey get error")
+	}
+	assert.Equal(t, true, strings.HasPrefix(ns, "/a/b/c/"))
+	SetDefaultOptions(WithRedisStyle())
+	ns, err = namespace.RandomKey()
+	if err != nil {
+		assert.FailNow(t, err.Error(), "redis style namespace RandomKey get error")
+	}
+	assert.Equal(t, true, strings.HasPrefix(ns, "a::b::c::"))
+	ReSetDefaultOptions()
 }

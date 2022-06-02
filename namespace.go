@@ -3,18 +3,21 @@ package namespace
 import (
 	"strings"
 
+	"github.com/Golang-Tools/idgener"
 	"github.com/Golang-Tools/optparams"
 )
 
 type Options struct {
-	Prefix             string //命名空间前缀
-	NamespaceDelimiter string //各级命名空间间的分隔符
-	KeyDelimiter       string //命名空间和key间的分隔符
+	Prefix             string                 //命名空间前缀
+	NamespaceDelimiter string                 //各级命名空间间的分隔符
+	KeyDelimiter       string                 //命名空间和key间的分隔符
+	RandomKeyGen       idgener.IDGENAlgorithm //锁key的随机生成算法.默认uuidv4
 }
 
 var defaultOptions = Options{
 	NamespaceDelimiter: "::",
 	KeyDelimiter:       "::",
+	RandomKeyGen:       idgener.IDGEN_UUIDV4,
 }
 
 //WithPrefix 设置命名空间间的前缀
@@ -91,6 +94,26 @@ func (n *NameSpcae) FullName(key string, opts ...optparams.Option[Options]) stri
 	return builder.String()
 }
 
+//RandomKey 在命名空间基础上创建一个随机的key的全名
+//@params opts ...optparams.Option[Options] 设置项
+func (n *NameSpcae) RandomKey(opts ...optparams.Option[Options]) (string, error) {
+	opt := defaultOptions
+	optparams.GetOption(&opt, opts...)
+	namespaceStr := strings.Join(*n, opt.NamespaceDelimiter)
+	randomkey, err := idgener.Next(opt.RandomKeyGen)
+	if err != nil {
+		return "", err
+	}
+	builder := strings.Builder{}
+	if opt.Prefix != "" {
+		builder.WriteString(opt.Prefix)
+	}
+	builder.WriteString(namespaceStr)
+	builder.WriteString(opt.KeyDelimiter)
+	builder.WriteString(randomkey)
+	return builder.String(), nil
+}
+
 //FromFullName 从全名字符串中解析出命名空间和key
 //@params fullname string 带解析全名
 //@params opts ...optparams.Option[Options] 设置项
@@ -153,4 +176,11 @@ func ReSetDefaultOptions() {
 		NamespaceDelimiter: "::",
 		KeyDelimiter:       "::",
 	}
+}
+
+//WithRandomKeyGen 指定随机生成key时使用的随机算法
+func WithRandomKeyGen(algo idgener.IDGENAlgorithm) optparams.Option[Options] {
+	return optparams.NewFuncOption(func(o *Options) {
+		o.RandomKeyGen = algo
+	})
 }
